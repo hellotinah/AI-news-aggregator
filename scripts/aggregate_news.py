@@ -12,6 +12,8 @@ from typing import List, Dict
 import feedparser
 import requests
 from bs4 import BeautifulSoup
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 
 # Configuration
 OUTPUT_FILE = os.path.join(os.path.dirname(__file__), '..', 'data', 'news.json')
@@ -43,8 +45,16 @@ TWITTER_ACCOUNTS = [
     'AndrewYNg',
 ]
 
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
+YOUTUBE_CHANNELS = {
+    'Two Minute Papers': 'UCbfYPyITQ-7l4upoX8nvctg',
+    'Yannic Kilcher': 'UCZHmQk67mSJgfCCTn7xBfew',
+    'AI Explained': 'UCNJ1Ymd5yFuUPtn21xtRbbw',
+    'Matthew Berman': 'UCkYzO2xQwbLxUjQqMxlVTCw',
+}
 
-def generate_id(url: str) -> str:
+
+def generate_id
     """Generate a unique ID from URL"""
     return hashlib.md5(url.encode()).hexdigest()[:16]
 
@@ -134,6 +144,39 @@ def fetch_twitter_news() -> List[Dict]:
     return articles
 
 
+def fetch_youtube_videos() -> List[Dict]:
+    articles = []
+    if not YOUTUBE_API_KEY:
+        print("⚠ YouTube API Key not found. Skipping YouTube videos.")
+        return articles
+    try:
+        youtube = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY)
+        for channel_name, channel_id in YOUTUBE_CHANNELS.items():
+            try:
+                request = youtube.search().list(part='snippet', channelId=channel_id, maxResults=5, order='date', type='video')
+                response = request.execute()
+                for item in response.get('items', []):
+                    video_id = item['id']['videoId']
+                    snippet = item['snippet']
+                    article = {
+                        'id': generate_id(f"https://youtube.com/watch?v={video_id}"),
+                        'title': snippet['title'],
+                        'summary': snippet['description'][:300] if snippet['description'] else snippet['title'],
+                        'url': f"https://youtube.com/watch?v={video_id}",
+                        'source': 'news',
+                        'source_name': f"YouTube - {channel_name}",
+                        'published_date': snippet['publishedAt'],
+                        'author': channel_name,
+                    }
+                    articles.append(article)
+                    print(f"✓ Fetched video: {article['title'][:60]}... from {channel_name}")
+            except HttpError as e:
+                print(f"✗ Error fetching YouTube videos from {channel_name}: {str(e)}")
+    except Exception as e:
+        print(f"✗ Error initializing YouTube API: {str(e)}")
+    return articles
+
+
 def fetch_company_blogs() -> List[Dict]:
     """Fetch latest posts from AI company blogs"""
     articles = []
@@ -179,6 +222,10 @@ def main():
     all_articles.extend(fetch_twitter_news())
     print()
     
+    print("🎥 Fetching YouTube videos...")
+    all_articles.extend(fetch_youtube_videos())
+    print()
+
     print("🏢 Fetching company blogs...")
     all_articles.extend(fetch_company_blogs())
     print()
