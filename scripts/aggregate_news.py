@@ -54,7 +54,7 @@ YOUTUBE_CHANNELS = {
 }
 
 
-def generate_id
+def generate_id(url):
     """Generate a unique ID from URL"""
     return hashlib.md5(url.encode()).hexdigest()[:16]
 
