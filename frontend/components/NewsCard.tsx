@@ -1,4 +1,5 @@
 import { NewsArticle } from '@/types/news';
+import ArticleAudioControls from './ArticleAudioControls';
 
 interface NewsCardProps {
   article: NewsArticle;
@@ -66,6 +67,8 @@ export default function NewsCard({ article }: NewsCardProps) {
         >
           Read more →
         </a>
+
+        <ArticleAudioControls text={`${article.title}. ${article.summary}`} />
       </div>
     </article>
   );

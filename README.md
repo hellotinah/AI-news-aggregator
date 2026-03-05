@@ -9,6 +9,7 @@ A self-updating microsite that aggregates AI news from multiple sources — RSS 
 - **Modern frontend** — Next.js 16 + React 19 + Tailwind CSS 4
 - **Dark mode** — respects system preference
 - **Source filtering** — filter articles by Twitter, News Outlets, or AI Companies
+- **Text-to-audio** — listen to article summaries via Google Cloud TTS or browser speech synthesis fallback, with download support
 - **Deduplication** — URL-based dedup prevents duplicate articles
 - **Deterministic IDs** — MD5-based article IDs for stable references
 
@@ -49,6 +50,7 @@ AI-news-aggregator/
 ├── frontend/                  # Next.js web application
 │   ├── app/
 │   │   ├── api/news/route.ts  # API endpoint serving news.json
+│   │   ├── api/tts/route.ts   # Text-to-speech API endpoint
 │   │   ├── page.tsx           # Main page (client component)
 │   │   ├── layout.tsx         # Root layout with fonts
 │   │   └── globals.css        # Tailwind + global styles
@@ -56,7 +58,10 @@ AI-news-aggregator/
 │   │   ├── Header.tsx         # Site header with last-updated time
 │   │   ├── NewsCard.tsx       # Individual article card
 │   │   ├── NewsGrid.tsx       # Responsive grid of NewsCards
-│   │   └── SourceFilter.tsx   # Filter buttons by source type
+│   │   ├── SourceFilter.tsx   # Filter buttons by source type
+│   │   └── ArticleAudioControls.tsx  # Play/download audio controls
+│   ├── hooks/
+│   │   └── useArticleAudio.ts # Audio playback & download hook
 │   ├── types/news.ts          # TypeScript interfaces
 │   ├── package.json
 │   └── next.config.ts
@@ -128,8 +133,21 @@ Open [http://localhost:3000](http://localhost:3000) to view the site.
 |---|---|---|
 | `TWITTER_BEARER_TOKEN` | No | Twitter/X API v2 Bearer Token for fetching tweets |
 | `YOUTUBE_API_KEY` | No | YouTube Data API v3 key for fetching videos |
+| `GOOGLE_TTS_API_KEY` | No | Google Cloud Text-to-Speech API key for audio generation |
 
 When running via the Oz agent, these are stored as **Oz secrets** and injected automatically. See [docs/SETUP.md](docs/SETUP.md#creating-oz-secrets) for details.
+
+### Text-to-Audio (TTS)
+
+Each article card has **Listen** and **Download** buttons. Audio generation works in two modes:
+
+1. **Cloud TTS (recommended)** — Set `GOOGLE_TTS_API_KEY` to a [Google Cloud Text-to-Speech API](https://cloud.google.com/text-to-speech) key. The server-side `/api/tts` route synthesizes high-quality MP3 audio. Audio can be played in-browser and downloaded.
+2. **Browser fallback** — If no API key is configured, the frontend automatically falls back to the browser's built-in `SpeechSynthesis` API. Playback works but download is not available in this mode.
+
+To obtain a Google Cloud TTS API key:
+1. Enable the **Cloud Text-to-Speech API** in the [Google Cloud Console](https://console.cloud.google.com/apis/library/texttospeech.googleapis.com).
+2. Create an API key under **APIs & Services → Credentials**.
+3. Set `export GOOGLE_TTS_API_KEY="your_key"` before starting the frontend.
 
 ## API Sources
 
